@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  db:
+    build:
+      dockerfile: postgres.dockerfile
+      context: ./
+    image: docs-conversation-db
+    container_name: docs-conversation-db-container
+    environment:
+      POSTGRES_DB: docs_conversation
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5440:5432"
+    restart: always
+    networks:
+      - docs-conversation-network
+
+networks:
+  docs-conversation-network:
+    driver: bridge
