@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Boolean, DateTime
 from sqlalchemy.sql import func
 from app.db.base import Base
 
-class APIKey(Base):
+class ApiKey(Base):
     __tablename__ = "api_keys"
 
     id = Column(String, primary_key=True)

@@ -1,12 +1,10 @@
 from pydantic import BaseModel
 from datetime import datetime
 
-class APIKeyCreate(BaseModel):
-    id: str
-    key: str
+class ApiKeyCreate(BaseModel):
     name: str
 
-class APIKeyResponse(BaseModel):
+class ApiKeyResponse(BaseModel):
     id: str
     name: str
     is_active: bool
@@ -14,3 +12,9 @@ class APIKeyResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ApiKeyCreateResponse(BaseModel):
+    id: str
+    key: str
+    name: str
+    message: str

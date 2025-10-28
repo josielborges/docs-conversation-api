@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Optional
 
 class NotebookCreate(BaseModel):
-    id: str
     name: str
 
 class NotebookUpdate(BaseModel):

@@ -2,8 +2,6 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class ConversationCreate(BaseModel):
-    id: str
-    notebook_id: str
     title: str
 
 class ConversationResponse(BaseModel):
