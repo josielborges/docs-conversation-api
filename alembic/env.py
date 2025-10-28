@@ -4,7 +4,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 import asyncio
-import os
+from app.core import settings
 
 config = context.config
 
@@ -12,12 +12,12 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 from app.db.base import Base
-from app.models import Notebook, Source, Conversation, ChatMessage, APIKey
+from app.models import Notebook, Source, Conversation, ChatMessage, ApiKey
 
 target_metadata = Base.metadata
 
 def get_url():
-    return os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+    return settings.DATABASE_URL if settings.DATABASE_URL else config.get_main_option("sqlalchemy.url")
 
 def run_migrations_offline() -> None:
     url = get_url()

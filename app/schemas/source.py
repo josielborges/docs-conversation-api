@@ -1,16 +1,15 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+import uuid as uuid_pkg
 
 class SourceCreate(BaseModel):
-    notebook_id: str
     name: str
     type: str
     view_url: Optional[str] = None
 
 class SourceResponse(BaseModel):
-    id: int
-    notebook_id: str
+    public_id: uuid_pkg.UUID
     name: str
     type: str
     view_url: Optional[str] = None

@@ -8,6 +8,7 @@ from app.services import DatabaseService, vector_store
 from app.utils import extract_text, chunk_text
 from app.api.dependencies import verify_api_key
 from app.core import settings
+import uuid as uuid_pkg
 
 router = APIRouter()
 
@@ -68,15 +69,15 @@ async def get_estante_livros(area_id: int, modalidade_id: int):
         raise HTTPException(status_code=400, detail=f"Erro ao buscar livros: {str(e)}")
 
 
-@router.post("/notebooks/{notebook_id}/add-livros")
+@router.post("/notebooks/{public_id}/add-livros")
 async def add_estante_livros(
-    notebook_id: str,
+    public_id: uuid_pkg.UUID,
     request: EstanteLivrosRequest,
     db: AsyncSession = Depends(get_db),
     api_key: str = Depends(verify_api_key)
 ):
     """Add books from Estante to a notebook."""
-    db_notebook = await DatabaseService.get_notebook(db, notebook_id)
+    db_notebook = await DatabaseService.get_notebook(db, public_id)
     if not db_notebook:
         raise HTTPException(status_code=404, detail="Notebook not found")
     
@@ -98,8 +99,8 @@ async def add_estante_livros(
                     continue
                 
                 chunks = chunk_text(text, settings.CHUNK_SIZE, settings.CHUNK_OVERLAP)
-                vector_store.add_documents(notebook_id, chunks, livro['nome'])
-                await DatabaseService.add_source(db, notebook_id, livro['nome'], "estante", livro['webViewLink'])
+                vector_store.add_documents(public_id, chunks, livro['nome'])
+                await DatabaseService.add_source(db, db_notebook.id, livro['nome'], "estante", livro['webViewLink'])
                 processed_count += 1
             except Exception as e:
                 print(f"Erro ao processar livro {livro['nome']}: {str(e)}")

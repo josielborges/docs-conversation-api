@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+import uuid as uuid_pkg
 
 class NotebookCreate(BaseModel):
     name: str
@@ -10,7 +11,7 @@ class NotebookUpdate(BaseModel):
     summary: Optional[str] = None
 
 class NotebookResponse(BaseModel):
-    id: str
+    public_id: uuid_pkg.UUID
     name: str
     summary: Optional[str] = None
     created_at: datetime

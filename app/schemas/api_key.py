@@ -1,11 +1,12 @@
 from pydantic import BaseModel
 from datetime import datetime
+import uuid as uuid_pkg
 
 class ApiKeyCreate(BaseModel):
     name: str
 
 class ApiKeyResponse(BaseModel):
-    id: str
+    public_id: uuid_pkg.UUID
     name: str
     is_active: bool
     created_at: datetime
@@ -14,7 +15,7 @@ class ApiKeyResponse(BaseModel):
         from_attributes = True
 
 class ApiKeyCreateResponse(BaseModel):
-    id: str
+    public_id: uuid_pkg.UUID
     key: str
     name: str
     message: str

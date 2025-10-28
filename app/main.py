@@ -13,7 +13,7 @@ async def lifespan(app: FastAPI):
     async for db in get_db():
         notebooks = await DatabaseService.get_all_notebooks(db)
         for notebook in notebooks:
-            vector_store.get_or_create_collection(notebook.id)
+            vector_store.get_or_create_collection(notebook.public_id)
         break
     yield
 

@@ -1,16 +1,15 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
+import uuid as uuid_pkg
 
 class ChatMessageCreate(BaseModel):
-    conversation_id: str
     role: str
     content: str
     sources: Optional[List[str]] = None
 
 class ChatMessageResponse(BaseModel):
-    id: int
-    conversation_id: str
+    public_id: uuid_pkg.UUID
     role: str
     content: str
     sources: Optional[List[str]] = None

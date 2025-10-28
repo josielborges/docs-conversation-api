@@ -5,6 +5,7 @@ from app.db.base import get_db
 from app.schemas import ApiKeyCreate, ApiKeyResponse, ApiKeyCreateResponse
 from app.services import DatabaseService
 from app.api.dependencies import verify_master_key
+import uuid as uuid_pkg
 
 router = APIRouter()
 
@@ -18,7 +19,7 @@ async def create_api_key(
     """Create a new API key. Requires master key."""
     api_key_response, api_key = await DatabaseService.create_api_key(db, api_key_create)
     return ApiKeyCreateResponse(
-        id=api_key_response.id,
+        public_id=api_key_response.public_id,
         key=api_key,
         name=api_key_response.name,
         message="Guarde esta chave, ela não será exibida novamente"
@@ -34,12 +35,12 @@ async def list_api_keys(
     return await DatabaseService.get_all_api_keys(db)
 
 
-@router.delete("/{key_id}")
+@router.delete("/{public_id}")
 async def delete_api_key(
-    key_id: str,
+    public_id: uuid_pkg.UUID,
     db: AsyncSession = Depends(get_db),
     master_key: str = Depends(verify_master_key)
 ):
     """Delete an API key. Requires master key."""
-    await DatabaseService.delete_api_key(db, key_id)
+    await DatabaseService.delete_api_key(db, public_id)
     return {"message": "API key deleted"}

@@ -8,14 +8,14 @@ from app.schemas import (
     ChatMessageResponse, SourceResponse,
     ApiKeyCreate, ApiKeyResponse
 )
-import uuid
+import uuid as uuid_pkg
 import secrets
 
 
 class DatabaseService:
     @staticmethod
     async def create_notebook(db: AsyncSession, notebook: NotebookCreate) -> NotebookResponse:
-        db_notebook = Notebook(id=str(uuid.uuid4()), name=notebook.name)
+        db_notebook = Notebook(name=notebook.name)
         db.add(db_notebook)
         await db.commit()
         await db.refresh(db_notebook)
@@ -28,13 +28,13 @@ class DatabaseService:
         return [NotebookResponse.model_validate(nb) for nb in notebooks]
     
     @staticmethod
-    async def get_notebook(db: AsyncSession, notebook_id: str) -> Optional[Notebook]:
-        result = await db.execute(select(Notebook).where(Notebook.id == notebook_id))
+    async def get_notebook(db: AsyncSession, public_id: uuid_pkg.UUID) -> Optional[Notebook]:
+        result = await db.execute(select(Notebook).where(Notebook.public_id == public_id))
         return result.scalar_one_or_none()
     
     @staticmethod
-    async def update_notebook(db: AsyncSession, notebook_id: str, name: str) -> NotebookResponse:
-        result = await db.execute(select(Notebook).where(Notebook.id == notebook_id))
+    async def update_notebook(db: AsyncSession, public_id: uuid_pkg.UUID, name: str) -> NotebookResponse:
+        result = await db.execute(select(Notebook).where(Notebook.public_id == public_id))
         notebook = result.scalar_one_or_none()
         if notebook:
             notebook.name = name
@@ -43,23 +43,22 @@ class DatabaseService:
         return NotebookResponse.model_validate(notebook)
     
     @staticmethod
-    async def update_notebook_summary(db: AsyncSession, notebook_id: str, summary: str):
-        result = await db.execute(select(Notebook).where(Notebook.id == notebook_id))
+    async def update_notebook_summary(db: AsyncSession, public_id: uuid_pkg.UUID, summary: str):
+        result = await db.execute(select(Notebook).where(Notebook.public_id == public_id))
         notebook = result.scalar_one_or_none()
         if notebook:
             notebook.summary = summary
             await db.commit()
     
     @staticmethod
-    async def delete_notebook(db: AsyncSession, notebook_id: str):
-        await db.execute(delete(Notebook).where(Notebook.id == notebook_id))
+    async def delete_notebook(db: AsyncSession, public_id: uuid_pkg.UUID):
+        await db.execute(delete(Notebook).where(Notebook.public_id == public_id))
         await db.commit()
     
     @staticmethod
-    async def create_conversation(db: AsyncSession, notebook_id: str, 
+    async def create_conversation(db: AsyncSession, notebook_id: int, 
                                   conversation: ConversationCreate) -> ConversationResponse:
         db_conversation = Conversation(
-            id=str(uuid.uuid4()),
             notebook_id=notebook_id,
             title=conversation.title
         )
@@ -69,7 +68,7 @@ class DatabaseService:
         return ConversationResponse.model_validate(db_conversation)
     
     @staticmethod
-    async def get_conversations(db: AsyncSession, notebook_id: str) -> List[ConversationResponse]:
+    async def get_conversations(db: AsyncSession, notebook_id: int) -> List[ConversationResponse]:
         result = await db.execute(
             select(Conversation).where(Conversation.notebook_id == notebook_id)
         )
@@ -77,20 +76,19 @@ class DatabaseService:
         return [ConversationResponse.model_validate(conv) for conv in conversations]
     
     @staticmethod
-    async def get_conversation(db: AsyncSession, conversation_id: str) -> Optional[Conversation]:
-        result = await db.execute(select(Conversation).where(Conversation.id == conversation_id))
+    async def get_conversation(db: AsyncSession, public_id: uuid_pkg.UUID) -> Optional[Conversation]:
+        result = await db.execute(select(Conversation).where(Conversation.public_id == public_id))
         return result.scalar_one_or_none()
     
     @staticmethod
-    async def delete_conversation(db: AsyncSession, conversation_id: str):
-        await db.execute(delete(Conversation).where(Conversation.id == conversation_id))
+    async def delete_conversation(db: AsyncSession, public_id: uuid_pkg.UUID):
+        await db.execute(delete(Conversation).where(Conversation.public_id == public_id))
         await db.commit()
     
     @staticmethod
-    async def add_chat_message(db: AsyncSession, conversation_id: str, role: str, 
+    async def add_chat_message(db: AsyncSession, conversation_id: int, role: str, 
                                content: str, sources: List[str] = None) -> ChatMessageResponse:
         db_message = ChatMessage(
-            id=str(uuid.uuid4()),
             conversation_id=conversation_id,
             role=role,
             content=content,
@@ -102,7 +100,7 @@ class DatabaseService:
         return ChatMessageResponse.model_validate(db_message)
     
     @staticmethod
-    async def get_chat_history(db: AsyncSession, conversation_id: str) -> List[ChatMessageResponse]:
+    async def get_chat_history(db: AsyncSession, conversation_id: int) -> List[ChatMessageResponse]:
         result = await db.execute(
             select(ChatMessage).where(ChatMessage.conversation_id == conversation_id)
         )
@@ -110,14 +108,13 @@ class DatabaseService:
         return [ChatMessageResponse.model_validate(msg) for msg in messages]
     
     @staticmethod
-    async def add_source(db: AsyncSession, notebook_id: str, name: str, 
+    async def add_source(db: AsyncSession, notebook_id: int, name: str, 
                         source_type: str, url: Optional[str] = None) -> SourceResponse:
         db_source = Source(
-            id=str(uuid.uuid4()),
             notebook_id=notebook_id,
             name=name,
             type=source_type,
-            url=url
+            view_url=url
         )
         db.add(db_source)
         await db.commit()
@@ -125,16 +122,15 @@ class DatabaseService:
         return SourceResponse.model_validate(db_source)
     
     @staticmethod
-    async def get_sources(db: AsyncSession, notebook_id: str) -> List[SourceResponse]:
+    async def get_sources(db: AsyncSession, notebook_id: int) -> List[SourceResponse]:
         result = await db.execute(select(Source).where(Source.notebook_id == notebook_id))
         sources = result.scalars().all()
         return [SourceResponse.model_validate(src) for src in sources]
     
     @staticmethod
     async def create_api_key(db: AsyncSession, api_key_create: ApiKeyCreate) -> tuple[ApiKeyResponse, str]:
-        key_id = str(uuid.uuid4())
         api_key = f"dca_{secrets.token_urlsafe(32)}"
-        db_api_key = ApiKey(id=key_id, key=api_key, name=api_key_create.name)
+        db_api_key = ApiKey(key=api_key, name=api_key_create.name)
         db.add(db_api_key)
         await db.commit()
         await db.refresh(db_api_key)
@@ -152,6 +148,6 @@ class DatabaseService:
         return result.scalar_one_or_none() is not None
     
     @staticmethod
-    async def delete_api_key(db: AsyncSession, key_id: str):
-        await db.execute(delete(ApiKey).where(ApiKey.id == key_id))
+    async def delete_api_key(db: AsyncSession, public_id: uuid_pkg.UUID):
+        await db.execute(delete(ApiKey).where(ApiKey.public_id == public_id))
         await db.commit()
