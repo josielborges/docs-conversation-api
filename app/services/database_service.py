@@ -109,7 +109,7 @@ class DatabaseService:
     
     @staticmethod
     async def add_source(db: AsyncSession, notebook_id: int, name: str, 
-                        source_type: str, url: Optional[str] = None) -> SourceResponse:
+                        source_type: str, url: Optional[str] = None) -> Source:
         db_source = Source(
             notebook_id=notebook_id,
             name=name,
@@ -119,13 +119,18 @@ class DatabaseService:
         db.add(db_source)
         await db.commit()
         await db.refresh(db_source)
-        return SourceResponse.model_validate(db_source)
+        return db_source
     
     @staticmethod
     async def get_sources(db: AsyncSession, notebook_id: int) -> List[SourceResponse]:
         result = await db.execute(select(Source).where(Source.notebook_id == notebook_id))
         sources = result.scalars().all()
         return [SourceResponse.model_validate(src) for src in sources]
+    
+    @staticmethod
+    async def delete_source(db: AsyncSession, public_id: uuid_pkg.UUID):
+        await db.execute(delete(Source).where(Source.public_id == public_id))
+        await db.commit()
     
     @staticmethod
     async def create_api_key(db: AsyncSession, api_key_create: ApiKeyCreate) -> tuple[ApiKeyResponse, str]:

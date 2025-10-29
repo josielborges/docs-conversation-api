@@ -83,8 +83,8 @@ async def upload_files(
             continue
         
         chunks = chunk_text(text)
-        await vector_store.add_documents(db, notebook.id, chunks, file.filename)
-        await DatabaseService.add_source(db, notebook.id, file.filename, "file")
+        source = await DatabaseService.add_source(db, notebook.id, file.filename, "file")
+        await vector_store.add_documents(db, notebook.id, source.id, chunks, file.filename)
     
     return {"message": f"{len(files)} arquivo(s) processado(s) com sucesso"}
 
@@ -106,8 +106,8 @@ async def add_link(
         raise HTTPException(status_code=400, detail="No content extracted from URL")
     
     chunks = chunk_text(text)
-    await vector_store.add_documents(db, notebook.id, chunks, link.url)
-    await DatabaseService.add_source(db, notebook.id, link.url, "link", link.url)
+    source = await DatabaseService.add_source(db, notebook.id, link.url, "link", link.url)
+    await vector_store.add_documents(db, notebook.id, source.id, chunks, link.url)
     
     return {"message": "Link adicionado com sucesso"}
 
@@ -134,8 +134,8 @@ async def add_estante_livros(
                 continue
             
             chunks = chunk_text(text)
-            await vector_store.add_documents(db, notebook.id, chunks, livro.nome)
-            await DatabaseService.add_source(db, notebook.id, livro.nome, "estante", livro.webViewLink)
+            source = await DatabaseService.add_source(db, notebook.id, livro.nome, "estante", livro.webViewLink)
+            await vector_store.add_documents(db, notebook.id, source.id, chunks, livro.nome)
             processed_count += 1
         except Exception as e:
             print(f"Erro ao processar livro {livro.nome}: {str(e)}")
@@ -155,6 +155,24 @@ async def get_summary(
     if not notebook:
         raise HTTPException(status_code=404, detail="Notebook not found")
     return {"summary": notebook.summary or ""}
+
+
+@router.delete("/{notebook_id}/sources/{source_id}")
+async def delete_source(
+    notebook_id: str,
+    source_id: str,
+    db: AsyncSession = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    notebook_public_id = uuid_pkg.UUID(notebook_id)
+    notebook = await DatabaseService.get_notebook(db, notebook_public_id)
+    if not notebook:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    
+    source_public_id = uuid_pkg.UUID(source_id)
+    await DatabaseService.delete_source(db, source_public_id)
+    
+    return {"message": "Source and embeddings deleted"}
 
 
 @router.post("/{notebook_id}/generate-summary")

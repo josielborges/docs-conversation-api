@@ -9,6 +9,7 @@ import uuid as uuid_pkg
 
 router = APIRouter()
 
+NUM_RESULTS_RAG = 10
 
 @router.post("/{notebook_id}/conversations")
 async def create_conversation(
@@ -74,8 +75,7 @@ async def chat(
         db,
         conversation.notebook_id,
         request.message,
-        n_results=10,
-        source_filter=request.enabled_sources if request.enabled_sources else None
+        n_results=NUM_RESULTS_RAG
     )
     
     context = "\n\n".join(results['documents'][0]) if results['documents'][0] else ""

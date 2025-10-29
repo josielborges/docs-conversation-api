@@ -30,12 +30,13 @@ class VectorStoreService:
         )
         return result['embedding']
     
-    async def add_documents(self, db: AsyncSession, notebook_id: int, chunks: List[str], filename: str):
+    async def add_documents(self, db: AsyncSession, notebook_id: int, source_id: int, chunks: List[str], filename: str):
         """Add document chunks to the vector store."""
         for i, chunk in enumerate(chunks):
             embedding = self._get_embedding(chunk)
             doc_embedding = DocumentEmbedding(
                 notebook_id=notebook_id,
+                source_id=source_id,
                 content=chunk,
                 embedding=embedding,
                 filename=filename,
@@ -45,7 +46,7 @@ class VectorStoreService:
         await db.commit()
     
     async def query(self, db: AsyncSession, notebook_id: int, query_text: str, 
-                   n_results: int = 10, source_filter: Optional[List[str]] = None) -> dict:
+                   n_results: int = 10) -> dict:
         """Query the vector store using cosine similarity."""
         query_embedding = self._get_query_embedding(query_text)
         
@@ -53,12 +54,10 @@ class VectorStoreService:
             DocumentEmbedding.content,
             DocumentEmbedding.filename,
             DocumentEmbedding.embedding.cosine_distance(query_embedding).label('distance')
-        ).where(DocumentEmbedding.notebook_id == notebook_id)
-        
-        if source_filter:
-            stmt = stmt.where(DocumentEmbedding.filename.in_(source_filter))
-        
-        stmt = stmt.order_by('distance').limit(n_results)
+        ).where(
+            DocumentEmbedding.notebook_id == notebook_id,
+            DocumentEmbedding.enabled == True
+        ).order_by('distance').limit(n_results)
         
         result = await db.execute(stmt)
         rows = result.all()

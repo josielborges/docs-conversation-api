@@ -12,7 +12,6 @@ class ChatMessageCreate(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    enabled_sources: List[str] = []
 
 
 class ChatResponse(BaseModel):
