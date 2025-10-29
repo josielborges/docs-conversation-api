@@ -64,15 +64,15 @@ async def chat(
     
     await DatabaseService.add_chat_message(db, conversation.id, "user", request.message)
     
-    notebook_public_id = str(conversation.notebook.public_id)
-    count = vector_store.get_count(notebook_public_id)
+    count = await vector_store.get_collection_count(db, conversation.notebook_id)
     if count == 0:
         response_text = "Por favor, faça upload de documentos antes de fazer perguntas."
         await DatabaseService.add_chat_message(db, conversation.id, "assistant", response_text, [])
         return {"response": response_text, "sources": []}
     
-    results = vector_store.query(
-        notebook_public_id,
+    results = await vector_store.query(
+        db,
+        conversation.notebook_id,
         request.message,
         n_results=10,
         source_filter=request.enabled_sources if request.enabled_sources else None
