@@ -11,8 +11,14 @@ class SourceCreate(BaseModel):
 class LinkRequest(BaseModel):
     url: str
 
+class EstanteLivro(BaseModel):
+    id: str
+    nome: str
+    driveId: str
+    webViewLink: str
+
 class EstanteLivrosRequest(BaseModel):
-    livros: List[dict]
+    livros: List[EstanteLivro]
 
 class SourceResponse(BaseModel):
     public_id: uuid_pkg.UUID

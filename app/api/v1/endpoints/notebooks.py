@@ -21,7 +21,6 @@ async def create_notebook(
     api_key: str = Depends(verify_api_key)
 ):
     nb = await DatabaseService.create_notebook(db, notebook)
-    vector_store.get_or_create_collection(str(nb.public_id))
     return nb
 
 
@@ -58,7 +57,9 @@ async def delete_notebook(
     api_key: str = Depends(verify_api_key)
 ):
     public_id = uuid_pkg.UUID(notebook_id)
-    vector_store.delete_collection(notebook_id)
+    notebook = await DatabaseService.get_notebook(db, public_id)
+    if notebook:
+        await vector_store.delete_collection(db, notebook.id)
     await DatabaseService.delete_notebook(db, public_id)
     return {"message": "Notebook deleted"}
 
@@ -127,17 +128,17 @@ async def add_estante_livros(
     
     for livro in request.livros:
         try:
-            content = estante_service.download_book(livro['driveId'])
-            text = extract_text(content, f"{livro['nome']}.pdf")
+            content = estante_service.download_book(livro.driveId)
+            text = extract_text(content, f"{livro.nome}.pdf")
             if not text:
                 continue
             
             chunks = chunk_text(text)
-            await vector_store.add_documents(db, notebook.id, chunks, livro['nome'])
-            await DatabaseService.add_source(db, notebook.id, livro['nome'], "estante", livro['webViewLink'])
+            await vector_store.add_documents(db, notebook.id, chunks, livro.nome)
+            await DatabaseService.add_source(db, notebook.id, livro.nome, "estante", livro.webViewLink)
             processed_count += 1
         except Exception as e:
-            print(f"Erro ao processar livro {livro['nome']}: {str(e)}")
+            print(f"Erro ao processar livro {livro.nome}: {str(e)}")
             continue
     
     return {"message": f"{processed_count} livro(s) adicionado(s) com sucesso"}
@@ -167,13 +168,13 @@ async def generate_summary(
     if not notebook:
         raise HTTPException(status_code=404, detail="Notebook not found")
     
-    count = vector_store.get_count(notebook_id)
+    count = await vector_store.get_collection_count(db, notebook.id)
     if count == 0:
         summary_text = "Nenhuma fonte adicionada ainda. Adicione documentos ou links para gerar um resumo."
         await DatabaseService.update_notebook_summary(db, public_id, summary_text)
         return {"summary": summary_text}
     
-    results = vector_store.query(notebook_id, "resumo geral conteúdo principal", min(10, count))
+    results = await vector_store.query(db, notebook.id, "resumo geral conteúdo principal", min(10, count))
     context = "\n\n".join(results['documents'][0]) if results['documents'][0] else ""
     sources = list(set([meta['filename'] for meta in results['metadatas'][0]])) if results['metadatas'] else []
     

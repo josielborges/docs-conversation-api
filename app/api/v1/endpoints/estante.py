@@ -24,5 +24,5 @@ async def get_livros(
     area_id: int,
     modalidade_id: int,
     api_key: str = Depends(verify_api_key)
-) -> List[dict]:
+):
     return await estante_service.get_livros(area_id, modalidade_id)
