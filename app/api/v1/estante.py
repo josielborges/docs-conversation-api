@@ -99,7 +99,7 @@ async def add_estante_livros(
                     continue
                 
                 chunks = chunk_text(text, settings.CHUNK_SIZE, settings.CHUNK_OVERLAP)
-                vector_store.add_documents(public_id, chunks, livro['nome'])
+                await vector_store.add_documents(db, db_notebook.id, chunks, livro['nome'])
                 await DatabaseService.add_source(db, db_notebook.id, livro['nome'], "estante", livro['webViewLink'])
                 processed_count += 1
             except Exception as e:

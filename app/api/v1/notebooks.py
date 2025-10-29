@@ -56,7 +56,7 @@ async def delete_notebook(
     if not db_notebook:
         raise HTTPException(status_code=404, detail="Notebook not found")
     
-    vector_store.delete_collection(public_id)
+    await vector_store.delete_collection(db, db_notebook.id)
     await DatabaseService.delete_notebook(db, public_id)
     return {"message": "Notebook deleted"}
 
@@ -81,7 +81,7 @@ async def upload_files(
                 continue
             
             chunks = chunk_text(text, settings.CHUNK_SIZE, settings.CHUNK_OVERLAP)
-            vector_store.add_documents(public_id, chunks, file.filename)
+            await vector_store.add_documents(db, db_notebook.id, chunks, file.filename)
             await DatabaseService.add_source(db, db_notebook.id, file.filename, "file")
         
         return {"message": f"{len(files)} arquivo(s) processado(s) com sucesso"}
@@ -124,14 +124,14 @@ async def generate_summary(
         raise HTTPException(status_code=404, detail="Notebook not found")
     
     try:
-        count = vector_store.get_collection_count(public_id)
+        count = await vector_store.get_collection_count(db, db_notebook.id)
         if count == 0:
             summary_text = "Nenhuma fonte adicionada ainda. Adicione documentos ou links para gerar um resumo."
             await DatabaseService.update_notebook_summary(db, public_id, summary_text)
             return {"summary": summary_text}
         
-        results = vector_store.query(public_id, "resumo geral conteúdo principal", 
-                                     min(10, count))
+        results = await vector_store.query(db, db_notebook.id, "resumo geral conteúdo principal", 
+                                          min(10, count))
         
         context = "\n\n".join(results['documents'][0]) if results['documents'][0] else ""
         sources = list(set([meta['filename'] for meta in results['metadatas'][0]])) if results['metadatas'] else []

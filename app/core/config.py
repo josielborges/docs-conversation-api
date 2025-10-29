@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     GEMINI_API_KEY: str
     GEMINI_MODEL: str
+    GEMINI_EMBEDDING_MODEL: str
     MASTER_API_KEY: str
     ESTANTE_USERNAME: str = ""
     ESTANTE_PASSWORD: str = ""

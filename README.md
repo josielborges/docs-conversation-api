@@ -16,8 +16,7 @@ A powerful RAG (Retrieval-Augmented Generation) based API for building conversat
 ## Architecture
 
 - **FastAPI**: Modern async web framework
-- **PostgreSQL**: Relational database for metadata
-- **ChromaDB**: Vector database for document embeddings
+- **PostgreSQL with pgvector**: Database for metadata and vector embeddings
 - **Google Gemini**: LLM for text generation
 - **SQLAlchemy**: Async ORM
 - **Alembic**: Database migrations

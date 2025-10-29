@@ -12,7 +12,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 from app.db.base import Base
-from app.models import Notebook, Source, Conversation, ChatMessage, ApiKey
+from app.models import Notebook, Source, Conversation, ChatMessage, ApiKey, DocumentEmbedding
 
 target_metadata = Base.metadata
 

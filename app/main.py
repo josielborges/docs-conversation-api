@@ -9,12 +9,7 @@ from app.db.base import get_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize vector store collections from database on startup."""
-    async for db in get_db():
-        notebooks = await DatabaseService.get_all_notebooks(db)
-        for notebook in notebooks:
-            vector_store.get_or_create_collection(notebook.public_id)
-        break
+    """Application lifespan."""
     yield
 
 

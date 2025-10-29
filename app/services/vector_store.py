@@ -1,69 +1,84 @@
-import chromadb
-from chromadb.config import Settings
-from chromadb.utils import embedding_functions
-from typing import Dict, List, Optional
+from typing import List, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete, func
+from app.models import DocumentEmbedding
+from app.core import settings
+import google.generativeai as genai
 import uuid as uuid_pkg
 
 
 class VectorStoreService:
     def __init__(self):
-        self.client = chromadb.Client(Settings(anonymized_telemetry=False))
-        self.collections: Dict[str, any] = {}
+        
+        genai.configure(api_key=settings.GEMINI_API_KEY)
     
-    def get_or_create_collection(self, notebook_public_id: uuid_pkg.UUID):
-        """Get or create a ChromaDB collection for a notebook."""
-        key = str(notebook_public_id)
-        if key not in self.collections:
-            self.collections[key] = self.client.get_or_create_collection(
-                name=f"notebook_{key}",
-                embedding_function=embedding_functions.DefaultEmbeddingFunction()
-            )
-        return self.collections[key]
+    def _get_embedding(self, text: str) -> List[float]:
+        """Generate embedding using Google's API."""
+        result = genai.embed_content(
+            model=settings.GEMINI_EMBEDDING_MODEL,
+            content=text,
+            task_type="retrieval_document"
+        )
+        return result['embedding']
     
-    def add_documents(self, notebook_public_id: uuid_pkg.UUID, chunks: List[str], filename: str):
+    def _get_query_embedding(self, text: str) -> List[float]:
+        """Generate embedding for query using Google's API."""
+        result = genai.embed_content(
+            model=settings.GEMINI_EMBEDDING_MODEL,
+            content=text,
+            task_type="retrieval_query"
+        )
+        return result['embedding']
+    
+    async def add_documents(self, db: AsyncSession, notebook_id: int, chunks: List[str], filename: str):
         """Add document chunks to the vector store."""
-        collection = self.get_or_create_collection(notebook_public_id)
         for i, chunk in enumerate(chunks):
-            collection.add(
-                documents=[chunk],
-                metadatas=[{"filename": filename, "chunk": i}],
-                ids=[f"{filename}_{i}_{uuid_pkg.uuid4()}"]
+            embedding = self._get_embedding(chunk)
+            doc_embedding = DocumentEmbedding(
+                notebook_id=notebook_id,
+                content=chunk,
+                embedding=embedding,
+                filename=filename,
+                chunk_index=i
             )
+            db.add(doc_embedding)
+        await db.commit()
     
-    def query(self, notebook_public_id: uuid_pkg.UUID, query_text: str, n_results: int = 10, 
-              source_filter: Optional[List[str]] = None) -> dict:
-        """Query the vector store."""
-        collection = self.get_or_create_collection(notebook_public_id)
-        count = collection.count()
+    async def query(self, db: AsyncSession, notebook_id: int, query_text: str, 
+                   n_results: int = 10, source_filter: Optional[List[str]] = None) -> dict:
+        """Query the vector store using cosine similarity."""
+        query_embedding = self._get_query_embedding(query_text)
         
-        if count == 0:
-            return {"documents": [[]], "metadatas": [[]]}
-        
-        n_results = min(n_results, count)
+        stmt = select(
+            DocumentEmbedding.content,
+            DocumentEmbedding.filename,
+            DocumentEmbedding.embedding.cosine_distance(query_embedding).label('distance')
+        ).where(DocumentEmbedding.notebook_id == notebook_id)
         
         if source_filter:
-            return collection.query(
-                query_texts=[query_text],
-                n_results=n_results,
-                where={"filename": {"$in": source_filter}}
-            )
-        else:
-            return collection.query(
-                query_texts=[query_text],
-                n_results=n_results
-            )
+            stmt = stmt.where(DocumentEmbedding.filename.in_(source_filter))
+        
+        stmt = stmt.order_by('distance').limit(n_results)
+        
+        result = await db.execute(stmt)
+        rows = result.all()
+        
+        documents = [[row.content for row in rows]]
+        metadatas = [[{"filename": row.filename} for row in rows]]
+        
+        return {"documents": documents, "metadatas": metadatas}
     
-    def delete_collection(self, notebook_public_id: uuid_pkg.UUID):
-        """Delete a collection."""
-        key = str(notebook_public_id)
-        self.client.delete_collection(f"notebook_{key}")
-        if key in self.collections:
-            del self.collections[key]
+    async def delete_collection(self, db: AsyncSession, notebook_id: int):
+        """Delete all embeddings for a notebook."""
+        await db.execute(delete(DocumentEmbedding).where(DocumentEmbedding.notebook_id == notebook_id))
+        await db.commit()
     
-    def get_collection_count(self, notebook_public_id: uuid_pkg.UUID) -> int:
-        """Get the number of documents in a collection."""
-        collection = self.get_or_create_collection(notebook_public_id)
-        return collection.count()
+    async def get_collection_count(self, db: AsyncSession, notebook_id: int) -> int:
+        """Get the number of embeddings for a notebook."""
+        result = await db.execute(
+            select(func.count(DocumentEmbedding.id)).where(DocumentEmbedding.notebook_id == notebook_id)
+        )
+        return result.scalar() or 0
 
 
 vector_store = VectorStoreService()

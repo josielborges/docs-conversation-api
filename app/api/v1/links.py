@@ -29,7 +29,7 @@ async def add_link(
             raise HTTPException(status_code=400, detail="No content extracted from URL")
         
         chunks = chunk_text(text, settings.CHUNK_SIZE, settings.CHUNK_OVERLAP)
-        vector_store.add_documents(public_id, chunks, link.url)
+        await vector_store.add_documents(db, db_notebook.id, chunks, link.url)
         await DatabaseService.add_source(db, db_notebook.id, link.url, "link", link.url)
         
         return {"message": "Link adicionado com sucesso"}
