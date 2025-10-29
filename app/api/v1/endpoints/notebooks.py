@@ -82,7 +82,7 @@ async def upload_files(
             continue
         
         chunks = chunk_text(text)
-        vector_store.add_documents(notebook_id, chunks, file.filename)
+        await vector_store.add_documents(db, notebook.id, chunks, file.filename)
         await DatabaseService.add_source(db, notebook.id, file.filename, "file")
     
     return {"message": f"{len(files)} arquivo(s) processado(s) com sucesso"}
@@ -105,7 +105,7 @@ async def add_link(
         raise HTTPException(status_code=400, detail="No content extracted from URL")
     
     chunks = chunk_text(text)
-    vector_store.add_documents(notebook_id, chunks, link.url)
+    await vector_store.add_documents(db, notebook.id, chunks, link.url)
     await DatabaseService.add_source(db, notebook.id, link.url, "link", link.url)
     
     return {"message": "Link adicionado com sucesso"}
@@ -133,7 +133,7 @@ async def add_estante_livros(
                 continue
             
             chunks = chunk_text(text)
-            vector_store.add_documents(notebook_id, chunks, livro['nome'])
+            await vector_store.add_documents(db, notebook.id, chunks, livro['nome'])
             await DatabaseService.add_source(db, notebook.id, livro['nome'], "estante", livro['webViewLink'])
             processed_count += 1
         except Exception as e:
