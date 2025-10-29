@@ -1,12 +1,18 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 import uuid as uuid_pkg
 
 class SourceCreate(BaseModel):
     name: str
     type: str
     view_url: Optional[str] = None
+
+class LinkRequest(BaseModel):
+    url: str
+
+class EstanteLivrosRequest(BaseModel):
+    livros: List[dict]
 
 class SourceResponse(BaseModel):
     public_id: uuid_pkg.UUID

@@ -22,6 +22,19 @@ IMPORTANT: Respond in Brazilian Portuguese."""
         response = self.model.generate_content(prompt)
         return response.text
     
+    def generate_chat_response(self, context: str, question: str) -> str:
+        """Generate a chat response based on context and question."""
+        prompt = f"""Com base nos seguintes documentos:
+
+{context}
+
+Responda a seguinte pergunta: {question}
+
+Se a informação não estiver nos documentos, diga que não encontrou a informação."""
+        
+        response = self.model.generate_content(prompt)
+        return response.text
+    
     def generate_summary(self, context: str, sources: list) -> str:
         """Generate a summary of the documents."""
         prompt = f"""Based on the following documents, create a comprehensive executive summary:

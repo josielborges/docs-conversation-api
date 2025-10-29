@@ -3,8 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.core import settings
 from app.api import api_router
-from app.services import vector_store, DatabaseService
-from app.db.base import get_db
 
 
 @asynccontextmanager
@@ -14,9 +12,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Docs Conversation API",
+    title=settings.PROJECT_NAME, 
     description="API for conversational document interaction using RAG",
-    version="1.0.0",
+    version=settings.VERSION,
     lifespan=lifespan
 )
 

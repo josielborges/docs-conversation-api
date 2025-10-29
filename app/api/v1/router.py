@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .endpoints import api_keys, notebooks, conversations, estante, sources
+from app.api.v1.endpoints import api_keys, notebooks, conversations, estante, sources
 
 api_router = APIRouter()
 
